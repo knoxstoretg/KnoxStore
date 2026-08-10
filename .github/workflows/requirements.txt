@@ -1,8 +1,1 @@
-python-telegram-bot==13.15
-pip install -U python-telegram-bot==22.8
-pip install "tzlocal<5" --force-reinstall
-pip install pytz --upgrade
-python -c "from importlib.metadata import version; print(version('tzlocal'))"
-pip uninstall apscheduler tzlocal -y
-pip install "apscheduler>=3.10.4,<3.11" "tzlocal<5" pytz
-python -c "import apscheduler, tzlocal, pytz; print('APScheduler:', apscheduler.__version__); print('tzlocal:', __import__('importlib.metadata').metadata.version('tzlocal')); print('pytz:', pytz.__version__)"
+python-telegram-bot==20.7
