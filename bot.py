@@ -23,12 +23,27 @@ PRODUCTS = {
     "amul_100": {
         "name": "🧀 Amul ₹100 Coupon",
         "price": 20,
-        "min_qty": 3
+        "min_qty": 2
     },
     "amul_100_bulk": {
         "name": "🧀 Amul ₹100 Bulk Coupon",
         "price": 15,
-        "min_qty": 10
+        "min_qty": 5
+    },
+    "flipkart_249": {
+        "name": "🛒 Flipkart ₹249 Gift Voucher",
+        "price": 99,
+        "min_qty": 1
+    },
+    "flipkart_499": {
+        "name": "🛒 Flipkart ₹499 Gift Voucher",
+        "price": 199,
+        "min_qty": 1
+    },
+    "dominos_100": {
+        "name": "🍕 Domino's ₹100 Gift Voucher",
+        "price": 25,
+        "min_qty": 2
     },
     "bookmyshow_499": {
         "name": "🎬 BookMyShow ₹499 Gift Card",
@@ -40,9 +55,14 @@ PRODUCTS = {
         "price": 199,
         "min_qty": 1
     },
-    "swiggy_499": {
-        "name": "🍔 Swiggy ₹499 Coupon",
-        "price": 199,
+    "swiggy_249": {
+        "name": "🍔 Swiggy ₹249 Coupon",
+        "price": 99,
+        "min_qty": 1
+    },
+    "zomato_249": {
+        "name": "🍔 Zomato ₹249 Gift Voucher",
+        "price": 99,
         "min_qty": 1
     },
     "shein_800": {
