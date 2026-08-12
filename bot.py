@@ -7,6 +7,7 @@ python-telegram-bot v20.7 compatible
 """
 
 import logging
+import re
 
 from telegram import (
     Update,
@@ -44,12 +45,6 @@ QR_IMAGE = "qr.jpg"
 # ============================================
 # FORCE JOIN / CHANNEL
 # ============================================
-
-# IMPORTANT:
-# Use @ before the public channel username.
-#
-# Example:
-# @KnoxStoreUpdates
 
 FORCE_JOIN_CHANNEL = "@KnoxStoreUpdates"
 
@@ -140,7 +135,12 @@ PRODUCTS = {
 # STATES
 # ============================================
 
-SELECTING_PRODUCT, ENTERING_QUANTITY, WAITING_FOR_SCREENSHOT = range(3)
+(
+    SELECTING_PRODUCT,
+    ENTERING_QUANTITY,
+    WAITING_FOR_SCREENSHOT,
+    WAITING_FOR_UTR
+) = range(4)
 
 
 # ============================================
@@ -149,7 +149,6 @@ SELECTING_PRODUCT, ENTERING_QUANTITY, WAITING_FOR_SCREENSHOT = range(3)
 
 current_orders = {}
 
-# User order history
 order_history = {}
 
 
@@ -257,15 +256,17 @@ async def show_force_join(
 
     ]
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     text = (
-        "🔒 <b>Join Our Channel First</b>\n\n"
-        "KNOX STORE use karne ke liye pehle "
-        "hamare updates channel ko join karo.\n\n"
-        "Channel join karne ke baad "
-        "<b>I've Joined</b> button press karo. 👇"
+        "🔐 <b>𝐂𝐡𝐚𝐧𝐧𝐞𝐥 𝐉𝐨𝐢𝐧 𝐑𝐞𝐪𝐮𝐢𝐫𝐞𝐝</b>\n\n"
+        "🖤 Welcome to <b>KNOX STORE</b>.\n\n"
+        "To access the store, please join our "
+        "official updates channel first.\n\n"
+        "1️⃣ Join the channel\n"
+        "2️⃣ Tap <b>I've Joined</b>\n"
+        "3️⃣ Continue shopping 🛍️"
     )
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
     if update.callback_query:
 
@@ -295,8 +296,12 @@ async def show_main_menu(
 ) -> int:
 
     text = (
-        "🖤 <b>Welcome to KNOX STORE</b>\n\n"
-        "Choose an option from the menu below 👇"
+        "🖤 <b>𝐊𝐍𝐎𝐗 𝐒𝐓𝐎𝐑𝐄</b>\n\n"
+        "✨ Welcome! Your trusted voucher store.\n\n"
+        "🛍️ Browse available vouchers\n"
+        "💳 Secure payment workflow\n"
+        "🔐 Payment verification process\n\n"
+        "👇 <b>Select an option below</b>"
     )
 
     keyboard = get_main_keyboard()
@@ -331,11 +336,9 @@ async def start(
 
     user = update.effective_user
 
-    # Clear old order
     if user.id in current_orders:
         del current_orders[user.id]
 
-    # Force Join
     if not await is_user_joined(
         update,
         context
@@ -373,20 +376,21 @@ async def force_join_callback(
     if not joined:
 
         await query.answer(
-            "❌ Pehle channel join karo!",
+            "❌ Please join the channel first!",
             show_alert=True
         )
 
         return
 
     await query.answer(
-        "✅ Verified!"
+        "✅ Membership verified!"
     )
 
     text = (
-        "🖤 <b>Welcome to KNOX STORE</b>\n\n"
-        "Channel verification successful! ✅\n\n"
-        "Choose an option from the menu below 👇"
+        "🖤 <b>𝐊𝐍𝐎𝐗 𝐒𝐓𝐎𝐑𝐄</b>\n\n"
+        "✅ Channel membership verified.\n\n"
+        "You're ready to continue! 🛍️\n\n"
+        "👇 Select an option below."
     )
 
     await query.message.reply_text(
@@ -418,8 +422,9 @@ async def buy_voucher(
         return SELECTING_PRODUCT
 
     text = (
-        "🛒 <b>Available Coupons & Gift Cards</b>\n\n"
-        "Select a product to purchase:"
+        "🛍️ <b>𝐁𝐔𝐘 𝐕𝐎𝐔𝐂𝐇𝐄𝐑</b>\n\n"
+        "✨ Select a voucher or gift card below.\n\n"
+        "💰 Prices are shown per item."
     )
 
     keyboard = []
@@ -427,7 +432,7 @@ async def buy_voucher(
     for product_id, product in PRODUCTS.items():
 
         button_text = (
-            f"{product['name']} - ₹{product['price']}"
+            f"{product['name']} • ₹{product['price']}"
         )
 
         keyboard.append([
@@ -479,8 +484,8 @@ async def show_products(
         return SELECTING_PRODUCT
 
     text = (
-        "🛒 <b>Available Coupons & Gift Cards</b>\n\n"
-        "Select a product to purchase:"
+        "🛍️ <b>𝐀𝐕𝐀𝐈𝐋𝐀𝐁𝐋𝐄 𝐕𝐎𝐔𝐂𝐇𝐄𝐑𝐒</b>\n\n"
+        "Select your preferred product:"
     )
 
     keyboard = []
@@ -488,7 +493,7 @@ async def show_products(
     for product_id, product in PRODUCTS.items():
 
         button_text = (
-            f"{product['name']} - ₹{product['price']}"
+            f"{product['name']} • ₹{product['price']}"
         )
 
         keyboard.append([
@@ -567,13 +572,13 @@ async def select_product(
     }
 
     text = (
-        f"<b>{product['name']}</b>\n\n"
-        f"💰 Price: ₹{product['price']} per item\n"
-        f"📦 Minimum quantity: {min_qty}\n\n"
-        "🔢 <b>Select Quantity:</b>"
+        f"🛍️ <b>{product['name']}</b>\n\n"
+        f"💰 <b>Price:</b> ₹{product['price']} / item\n"
+        f"📦 <b>Minimum:</b> {min_qty}\n\n"
+        "🔢 <b>SELECT QUANTITY</b>\n"
+        "Choose one of the options below:"
     )
 
-    # Minimum + next 3
     quantities = [
         min_qty,
         min_qty + 1,
@@ -678,7 +683,7 @@ async def select_quantity(
     if quantity < order["min_qty"]:
 
         await query.answer(
-            f"Minimum quantity is {order['min_qty']}",
+            f"Minimum quantity: {order['min_qty']}",
             show_alert=True
         )
 
@@ -722,9 +727,10 @@ async def custom_quantity(
     min_qty = current_orders[user_id]["min_qty"]
 
     text = (
-        "✏️ <b>Custom Quantity</b>\n\n"
+        "✏️ <b>𝐂𝐔𝐒𝐓𝐎𝐌 𝐐𝐔𝐀𝐍𝐓𝐈𝐓𝐘</b>\n\n"
         f"📦 Minimum quantity: <b>{min_qty}</b>\n\n"
-        "Please type your required quantity:"
+        "⌨️ Please type the quantity you want.\n"
+        "Example: <code>10</code>"
     )
 
     keyboard = [[
@@ -767,10 +773,10 @@ async def back_to_quantity(
     min_qty = order["min_qty"]
 
     text = (
-        f"<b>{order['product_name']}</b>\n\n"
-        f"💰 Price: ₹{order['price_per_item']} per item\n"
-        f"📦 Minimum quantity: {min_qty}\n\n"
-        "🔢 <b>Select Quantity:</b>"
+        f"🛍️ <b>{order['product_name']}</b>\n\n"
+        f"💰 <b>Price:</b> ₹{order['price_per_item']} / item\n"
+        f"📦 <b>Minimum:</b> {min_qty}\n\n"
+        "🔢 <b>SELECT QUANTITY</b>"
     )
 
     quantities = [
@@ -830,7 +836,8 @@ async def process_quantity(
     if user_id not in current_orders:
 
         await update.effective_chat.send_message(
-            "❌ No active order. Use /start"
+            "❌ No active order.\n\n"
+            "Please start again with /start."
         )
 
         return ConversationHandler.END
@@ -842,7 +849,7 @@ async def process_quantity(
         if update.callback_query:
 
             await update.callback_query.answer(
-                f"Minimum quantity is {order['min_qty']}",
+                f"Minimum quantity: {order['min_qty']}",
                 show_alert=True
             )
 
@@ -853,24 +860,34 @@ async def process_quantity(
     )
 
     order["quantity"] = quantity
-
     order["total_amount"] = total_amount
 
     summary = (
-        "🛒 <b>Order Summary</b>\n\n"
+        "🧾 <b>𝐎𝐑𝐃𝐄𝐑 𝐒𝐔𝐌𝐌𝐀𝐑𝐘</b>\n\n"
 
-        f"📦 Product: {order['product_name']}\n"
+        f"📦 <b>Product:</b>\n"
+        f"{order['product_name']}\n\n"
 
-        f"🔢 Quantity: {quantity}\n"
+        f"🔢 <b>Quantity:</b> {quantity}\n"
 
-        f"💰 Price per item: "
-        f"₹{order['price_per_item']}\n"
+        f"💰 <b>Price:</b> "
+        f"₹{order['price_per_item']} / item\n"
 
-        f"💵 Total Amount: ₹{total_amount}\n\n"
+        f"💵 <b>Total:</b> ₹{total_amount}\n\n"
 
-        "Please scan the QR below and make the payment.\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
 
-        "After payment, send the payment screenshot here."
+        "💳 <b>PAYMENT INSTRUCTIONS</b>\n\n"
+
+        "1️⃣ Scan the QR code below.\n"
+        "2️⃣ Pay the exact amount shown above.\n"
+        "3️⃣ Keep your payment confirmation ready.\n\n"
+
+        "🔐 <b>Payment Verification</b>\n"
+        "Our payment-verification workflow will process "
+        "your screenshot and UTR after submission.\n\n"
+
+        "⚠️ Do not send a fake or edited payment proof."
     )
 
     if update.callback_query:
@@ -892,7 +909,7 @@ async def process_quantity(
         )
 
     # ========================================
-    # QR
+    # SEND QR
     # ========================================
 
     try:
@@ -904,32 +921,45 @@ async def process_quantity(
 
             await message.reply_photo(
                 qr_file,
-                caption="📲 Scan this QR code to make payment"
+                caption=(
+                    "💳 𝐏𝐀𝐘𝐌𝐄𝐍𝐓 𝐐𝐑\n\n"
+                    f"Amount: ₹{total_amount}\n"
+                    "Please pay the exact amount."
+                )
             )
 
     except FileNotFoundError:
 
         await message.reply_text(
-            "⚠️ QR code image not found. "
-            "Please contact support."
+            "⚠️ <b>QR unavailable</b>\n\n"
+            "Please contact support before making payment.",
+            parse_mode="HTML"
         )
 
+        return WAITING_FOR_SCREENSHOT
+
     # ========================================
-    # BACK BUTTON
+    # SCREENSHOT REQUEST
     # ========================================
 
     keyboard = [[
 
         InlineKeyboardButton(
-            "⬅️ Back to Products",
-            callback_data="show_products"
+            "💬 Contact Support",
+            url=f"https://t.me/{SUPPORT_USERNAME}"
         )
 
     ]]
 
     await message.reply_text(
-        "Or browse more products:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        "📸 <b>𝐍𝐄𝐗𝐓 𝐒𝐓𝐄𝐏</b>\n\n"
+        "After completing payment, send your "
+        "<b>payment screenshot</b> here.\n\n"
+        "🔢 After the screenshot, the bot will ask "
+        "you for your <b>UTR / Transaction ID</b>.\n\n"
+        "⚠️ Please send the original payment proof.",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="HTML"
     )
 
     return WAITING_FOR_SCREENSHOT
@@ -943,6 +973,10 @@ async def handle_quantity(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ) -> int:
+
+    # Important:
+    # Permanent menu handlers are registered BEFORE
+    # this generic text handler.
 
     if not await is_user_joined(
         update,
@@ -961,10 +995,12 @@ async def handle_quantity(
     if user_id not in current_orders:
 
         await update.message.reply_text(
-            "❌ No active order. Use /start"
+            "❌ <b>No active order.</b>\n\n"
+            "Please select a product first.",
+            parse_mode="HTML"
         )
 
-        return ConversationHandler.END
+        return SELECTING_PRODUCT
 
     order = current_orders[user_id]
 
@@ -977,8 +1013,10 @@ async def handle_quantity(
     except ValueError:
 
         await update.message.reply_text(
-            f"❌ Please enter a valid number.\n\n"
-            f"Minimum quantity: {order['min_qty']}"
+            "❌ <b>Invalid quantity</b>\n\n"
+            f"Minimum quantity: <b>{order['min_qty']}</b>\n"
+            "Please enter numbers only.",
+            parse_mode="HTML"
         )
 
         return ENTERING_QUANTITY
@@ -986,8 +1024,9 @@ async def handle_quantity(
     if quantity < order["min_qty"]:
 
         await update.message.reply_text(
-            f"❌ Minimum quantity is "
-            f"{order['min_qty']}."
+            "❌ <b>Quantity too low</b>\n\n"
+            f"Minimum quantity: <b>{order['min_qty']}</b>",
+            parse_mode="HTML"
         )
 
         return ENTERING_QUANTITY
@@ -1025,7 +1064,9 @@ async def handle_screenshot(
     if user_id not in current_orders:
 
         await update.message.reply_text(
-            "❌ No active order. Use /start"
+            "❌ <b>No active order.</b>\n\n"
+            "Please start again.",
+            parse_mode="HTML"
         )
 
         return ConversationHandler.END
@@ -1034,40 +1075,132 @@ async def handle_screenshot(
 
     photo_file = update.message.photo[-1]
 
+    # Store screenshot temporarily
+    order["screenshot_file_id"] = photo_file.file_id
+
+    await update.message.reply_text(
+        "📸 <b>Screenshot received! ✅</b>\n\n"
+        "Now send your <b>UTR / Transaction ID</b>.\n\n"
+        "🔢 Example: <code>123456789012</code>\n\n"
+        "Your screenshot and UTR will be submitted "
+        "together for payment verification.",
+        parse_mode="HTML"
+    )
+
+    return WAITING_FOR_UTR
+
+
+# ============================================
+# UTR / TRANSACTION ID
+# ============================================
+
+async def handle_utr(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+) -> int:
+
+    if not await is_user_joined(
+        update,
+        context
+    ):
+
+        await show_force_join(
+            update,
+            context
+        )
+
+        return SELECTING_PRODUCT
+
+    user_id = update.effective_user.id
+
+    if user_id not in current_orders:
+
+        await update.message.reply_text(
+            "❌ <b>No active order.</b>\n\n"
+            "Please start again.",
+            parse_mode="HTML"
+        )
+
+        return ConversationHandler.END
+
+    order = current_orders[user_id]
+
+    utr = update.message.text.strip()
+
+    # Remove spaces
+    clean_utr = utr.replace(" ", "")
+
+    # Basic validation
+    if not re.fullmatch(
+        r"[A-Za-z0-9]{6,30}",
+        clean_utr
+    ):
+
+        await update.message.reply_text(
+            "❌ <b>Invalid UTR / Transaction ID</b>\n\n"
+            "Please send a valid UTR / Transaction ID "
+            "using letters and numbers only.\n\n"
+            "Example:\n"
+            "<code>123456789012</code>",
+            parse_mode="HTML"
+        )
+
+        return WAITING_FOR_UTR
+
+    order["utr"] = clean_utr
+
     # ========================================
-    # ADMIN MESSAGE
+    # ADMIN PAYMENT PACKAGE
     # ========================================
 
-    admin_msg = (
-        "🆕 <b>New Payment Screenshot</b>\n\n"
+    admin_caption = (
+        "🔔 <b>𝐍𝐄𝐖 𝐏𝐀𝐘𝐌𝐄𝐍𝐓 𝐒𝐔𝐁𝐌𝐈𝐒𝐒𝐈𝐎𝐍</b>\n\n"
 
-        f"👤 User ID: <code>{user_id}</code>\n"
+        f"👤 <b>User ID:</b> "
+        f"<code>{user_id}</code>\n\n"
 
-        f"📦 Product: {order['product_name']}\n"
+        f"📦 <b>Product:</b>\n"
+        f"{order['product_name']}\n\n"
 
-        f"🔢 Quantity: {order['quantity']}\n"
+        f"🔢 <b>Quantity:</b> "
+        f"{order['quantity']}\n"
 
-        f"💰 Price per item: "
+        f"💰 <b>Price/item:</b> "
         f"₹{order['price_per_item']}\n"
 
-        f"💵 Total Amount: "
-        f"₹{order['total_amount']}"
+        f"💵 <b>Total:</b> "
+        f"₹{order['total_amount']}\n\n"
+
+        f"🔢 <b>UTR / Transaction ID:</b>\n"
+        f"<code>{clean_utr}</code>\n\n"
+
+        "🔐 <b>Status:</b> Verification Pending"
     )
 
     try:
 
+        # Send screenshot with complete payment details
         await context.bot.send_photo(
             chat_id=ADMIN_CHAT_ID,
-            photo=photo_file.file_id,
-            caption=admin_msg,
+            photo=order["screenshot_file_id"],
+            caption=admin_caption,
             parse_mode="HTML"
         )
 
     except Exception as e:
 
         logger.error(
-            f"Failed to send screenshot to admin: {e}"
+            f"Failed to send payment submission: {e}"
         )
+
+        await update.message.reply_text(
+            "⚠️ <b>Submission failed</b>\n\n"
+            "We couldn't submit your payment proof "
+            "right now. Please contact support.",
+            parse_mode="HTML"
+        )
+
+        return WAITING_FOR_UTR
 
     # ========================================
     # SAVE HISTORY
@@ -1083,7 +1216,9 @@ async def handle_screenshot(
 
         "quantity": order["quantity"],
 
-        "total": order["total_amount"]
+        "total": order["total_amount"],
+
+        "utr": clean_utr
 
     })
 
@@ -1092,20 +1227,25 @@ async def handle_screenshot(
     # ========================================
 
     confirm = (
-        "✅ <b>Payment screenshot received!</b>\n\n"
+        "🔐 <b>𝐏𝐀𝐘𝐌𝐄𝐍𝐓 𝐒𝐔𝐁𝐌𝐈𝐓𝐓𝐄𝐃</b>\n\n"
 
-        "Please contact our support to receive "
-        "your order.\n\n"
+        "📸 Screenshot: <b>Received</b> ✅\n"
+        "🔢 UTR: <b>Received</b> ✅\n\n"
 
-        f"💬 @{SUPPORT_USERNAME}\n\n"
+        "🤖 <b>Payment verification workflow initiated.</b>\n\n"
 
-        "Tap the Support button below 👇"
+        "Your payment details have been submitted "
+        "for verification.\n\n"
+
+        "⏳ Please wait for verification/order processing.\n\n"
+
+        f"💬 Support: @{SUPPORT_USERNAME}"
     )
 
     keyboard = [[
 
         InlineKeyboardButton(
-            "💬 Support",
+            "💬 Contact Support",
             url=f"https://t.me/{SUPPORT_USERNAME}"
         )
 
@@ -1117,7 +1257,7 @@ async def handle_screenshot(
         parse_mode="HTML"
     )
 
-    # Clear order
+    # Clear active order
     del current_orders[user_id]
 
     return ConversationHandler.END
@@ -1154,27 +1294,26 @@ async def show_history(
     if not history:
 
         text = (
-            "📜 <b>Your Order History</b>\n\n"
-            "No completed orders found yet."
+            "📜 <b>𝐎𝐑𝐃𝐄𝐑 𝐇𝐈𝐒𝐓𝐎𝐑𝐘</b>\n\n"
+            "You don't have any submitted orders yet. 🛍️"
         )
 
     else:
 
         text = (
-            "📜 <b>Your Order History</b>\n\n"
+            "📜 <b>𝐎𝐑𝐃𝐄𝐑 𝐇𝐈𝐒𝐓𝐎𝐑𝐘</b>\n\n"
         )
 
-        # Show latest 10
         for index, order in enumerate(
             history[-10:],
             start=1
         ):
 
             text += (
-                f"<b>{index}.</b> "
-                f"{order['product']}\n"
-                f"🔢 Qty: {order['quantity']}\n"
-                f"💵 Amount: ₹{order['total']}\n\n"
+                f"<b>{index}. {order['product']}</b>\n"
+                f"🔢 Quantity: {order['quantity']}\n"
+                f"💵 Amount: ₹{order['total']}\n"
+                f"🔐 UTR: <code>{order['utr']}</code>\n\n"
             )
 
     await update.message.reply_text(
@@ -1208,20 +1347,30 @@ async def show_disclaimer(
         return SELECTING_PRODUCT
 
     text = (
-        "ℹ️ <b>KNOX STORE Disclaimer</b>\n\n"
+        "ℹ️ <b>𝐊𝐍𝐎𝐗 𝐒𝐓𝐎𝐑𝐄 — 𝐃𝐈𝐒𝐂𝐋𝐀𝐈𝐌𝐄𝐑</b>\n\n"
 
-        "• All orders are subject to availability.\n"
+        "🛍️ <b>Orders</b>\n"
+        "All orders are subject to product availability "
+        "and successful payment verification.\n\n"
 
-        "• Please verify the product and quantity "
-        "before making payment.\n"
+        "💳 <b>Payment</b>\n"
+        "Please pay only the exact amount shown by the bot. "
+        "Always keep your payment confirmation.\n\n"
 
-        "• Payment screenshots are reviewed by our "
-        "support team.\n"
+        "📸 <b>Payment Proof</b>\n"
+        "A clear payment screenshot and valid "
+        "UTR / Transaction ID are required.\n\n"
 
-        "• For any issue, contact support.\n\n"
+        "🤖 <b>Automated Verification Workflow</b>\n"
+        "Submitted payment details enter the payment "
+        "verification workflow. Do not consider an order "
+        "confirmed until verification is completed.\n\n"
 
-        "💬 Support: "
-        f"@{SUPPORT_USERNAME}"
+        "🔐 <b>Important</b>\n"
+        "Never share your UPI PIN, OTP, password or "
+        "other sensitive banking credentials.\n\n"
+
+        f"💬 <b>Support:</b> @{SUPPORT_USERNAME}"
     )
 
     await update.message.reply_text(
@@ -1255,9 +1404,14 @@ async def show_support(
         return SELECTING_PRODUCT
 
     text = (
-        "💬 <b>KNOX STORE Support</b>\n\n"
-        "For orders, payment issues or any "
-        "other help, contact our support:"
+        "💬 <b>𝐊𝐍𝐎𝐗 𝐒𝐓𝐎𝐑𝐄 𝐒𝐔𝐏𝐏𝐎𝐑𝐓</b>\n\n"
+
+        "Need help with an order, payment or voucher?\n\n"
+
+        "📌 Please keep your Order details and "
+        "UTR ready when contacting support.\n\n"
+
+        f"👤 <b>Support:</b> @{SUPPORT_USERNAME}"
     )
 
     keyboard = [[
@@ -1279,7 +1433,7 @@ async def show_support(
 
 
 # ============================================
-# JOIN CHANNEL BUTTON
+# JOIN CHANNEL
 # ============================================
 
 async def join_channel_button(
@@ -1306,9 +1460,10 @@ async def join_channel_button(
     ]
 
     text = (
-        "📢 <b>KNOX STORE Updates</b>\n\n"
-        "Latest updates, new vouchers and "
-        "availability yahan milegi."
+        "📢 <b>𝐊𝐍𝐎𝐗 𝐒𝐓𝐎𝐑𝐄 𝐔𝐏𝐃𝐀𝐓𝐄𝐒</b>\n\n"
+        "Get the latest store updates, "
+        "new products and availability notifications.\n\n"
+        "👇 Join our official channel:"
     )
 
     await update.message.reply_text(
@@ -1346,7 +1501,7 @@ async def back_to_main(
         return SELECTING_PRODUCT
 
     text = (
-        "🖤 <b>KNOX STORE</b>\n\n"
+        "🖤 <b>𝐊𝐍𝐎𝐗 𝐒𝐓𝐎𝐑𝐄</b>\n\n"
         "Choose an option from the menu below 👇"
     )
 
@@ -1375,27 +1530,49 @@ async def cancel(
         del current_orders[user_id]
 
     await update.message.reply_text(
-        "❌ Operation cancelled.\n\n"
-        "Use the menu below to continue.",
-        reply_markup=get_main_keyboard()
+        "❌ <b>Order process cancelled.</b>\n\n"
+        "You can start again anytime from the menu.",
+        reply_markup=get_main_keyboard(),
+        parse_mode="HTML"
     )
 
     return ConversationHandler.END
 
 
 # ============================================
-# UNEXPECTED MESSAGE
+# COMMON MENU HANDLERS
 # ============================================
 
-async def handle_unexpected(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+def get_menu_handlers():
 
-    await update.message.reply_text(
-        "Please use the buttons below 👇",
-        reply_markup=get_main_keyboard()
-    )
+    return [
+
+        MessageHandler(
+            filters.Regex(r"^🛍️ Buy Voucher$"),
+            buy_voucher
+        ),
+
+        MessageHandler(
+            filters.Regex(r"^📜 History$"),
+            show_history
+        ),
+
+        MessageHandler(
+            filters.Regex(r"^💬 Support$"),
+            show_support
+        ),
+
+        MessageHandler(
+            filters.Regex(r"^ℹ️ Disclaimer$"),
+            show_disclaimer
+        ),
+
+        MessageHandler(
+            filters.Regex(r"^📢 Join Channel$"),
+            join_channel_button
+        )
+
+    ]
 
 
 # ============================================
@@ -1429,52 +1606,17 @@ def main():
 
         states={
 
+
             # =================================
-            # MAIN MENU
+            # SELECTING PRODUCT
             # =================================
 
             SELECTING_PRODUCT: [
 
-                # Permanent keyboard buttons
+                # Permanent menu
+                *get_menu_handlers(),
 
-                MessageHandler(
-                    filters.Regex(
-                        "^🛍️ Buy Voucher$"
-                    ),
-                    buy_voucher
-                ),
-
-                MessageHandler(
-                    filters.Regex(
-                        "^📜 History$"
-                    ),
-                    show_history
-                ),
-
-                MessageHandler(
-                    filters.Regex(
-                        "^💬 Support$"
-                    ),
-                    show_support
-                ),
-
-                MessageHandler(
-                    filters.Regex(
-                        "^ℹ️ Disclaimer$"
-                    ),
-                    show_disclaimer
-                ),
-
-                MessageHandler(
-                    filters.Regex(
-                        "^📢 Join Channel$"
-                    ),
-                    join_channel_button
-                ),
-
-
-                # Inline product callbacks
-
+                # Inline product buttons
                 CallbackQueryHandler(
                     show_products,
                     pattern="^show_products$"
@@ -1494,37 +1636,47 @@ def main():
                     "start",
                     start
                 )
+
             ],
 
 
             # =================================
-            # QUANTITY
+            # ENTERING QUANTITY
             # =================================
 
             ENTERING_QUANTITY: [
 
+                # IMPORTANT:
+                # Menu handlers come BEFORE generic
+                # text quantity handler.
+
+                *get_menu_handlers(),
+
+                # Inline quantity
                 CallbackQueryHandler(
                     select_quantity,
                     pattern="^qty_"
                 ),
 
+                # Custom quantity
                 CallbackQueryHandler(
                     custom_quantity,
                     pattern="^custom_quantity$"
                 ),
 
+                # Back to quantity
                 CallbackQueryHandler(
                     back_to_quantity,
                     pattern="^back_to_quantity$"
                 ),
 
+                # Back to products
                 CallbackQueryHandler(
                     show_products,
                     pattern="^show_products$"
                 ),
 
-                # Custom quantity typed by user
-
+                # Typed custom quantity
                 MessageHandler(
                     filters.TEXT & ~filters.COMMAND,
                     handle_quantity
@@ -1534,15 +1686,22 @@ def main():
                     "start",
                     start
                 )
+
             ],
 
 
             # =================================
-            # WAITING SCREENSHOT
+            # WAITING FOR SCREENSHOT
             # =================================
 
             WAITING_FOR_SCREENSHOT: [
 
+                # IMPORTANT:
+                # Permanent buttons also work here.
+
+                *get_menu_handlers(),
+
+                # Payment screenshot
                 MessageHandler(
                     filters.PHOTO,
                     handle_screenshot
@@ -1557,6 +1716,31 @@ def main():
                     "start",
                     start
                 )
+
+            ],
+
+
+            # =================================
+            # WAITING FOR UTR
+            # =================================
+
+            WAITING_FOR_UTR: [
+
+                # Permanent buttons also work here.
+
+                *get_menu_handlers(),
+
+                # UTR text
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND,
+                    handle_utr
+                ),
+
+                CommandHandler(
+                    "start",
+                    start
+                )
+
             ]
 
         },
@@ -1584,7 +1768,7 @@ def main():
 
 
     # ========================================
-    # ADD HANDLERS
+    # ADD CONVERSATION HANDLER
     # ========================================
 
     app.add_handler(
@@ -1592,7 +1776,10 @@ def main():
     )
 
 
-    # Force Join verification callback
+    # ========================================
+    # FORCE JOIN CALLBACK
+    # ========================================
+
     app.add_handler(
         CallbackQueryHandler(
             force_join_callback,
@@ -1602,13 +1789,14 @@ def main():
 
 
     # ========================================
-    # START
+    # START BOT
     # ========================================
 
     print("🤖 KNOX STORE Bot starting...")
-
-    print("Permanent Reply Keyboard enabled.")
-
+    print("✅ Permanent keyboard enabled")
+    print("✅ Force Join enabled")
+    print("✅ Quantity buttons enabled")
+    print("✅ Screenshot + UTR verification flow enabled")
     print("Press Ctrl+C to stop.")
 
     app.run_polling(
