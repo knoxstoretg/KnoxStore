@@ -32,12 +32,12 @@ PRODUCTS = {
     },
     "flipkart_249": {
         "name": "🛒 Flipkart ₹249 Gift Voucher",
-        "price": 99,
+        "price": 79,
         "min_qty": 1
     },
     "flipkart_499": {
         "name": "🛒 Flipkart ₹499 Gift Voucher",
-        "price": 199,
+        "price": 149,
         "min_qty": 1
     },
     "dominos_100": {
@@ -47,22 +47,32 @@ PRODUCTS = {
     },
     "bookmyshow_499": {
         "name": "🎬 BookMyShow ₹499 Gift Card",
-        "price": 199,
+        "price": 149,
+        "min_qty": 1
+    },
+    "pvr_200": {
+        "name": "🎞PVR ₹200 Movie Voucher",
+        "price": 50,
         "min_qty": 1
     },
     "blinkit_499": {
         "name": "🛍️ Blinkit ₹499 Coupon",
-        "price": 199,
+        "price": 149,
+        "min_qty": 1
+    },
+    "bigbasket_249": {
+        "name": "🛒 BigBasket ₹249 Gift Voucher",
+        "price": 79,
         "min_qty": 1
     },
     "swiggy_249": {
         "name": "🍔 Swiggy ₹249 Coupon",
-        "price": 99,
+        "price": 79,
         "min_qty": 1
     },
     "zomato_249": {
         "name": "🍔 Zomato ₹249 Gift Voucher",
-        "price": 99,
+        "price": 79,
         "min_qty": 1
     },
     "shein_800": {
@@ -72,7 +82,6 @@ PRODUCTS = {
     }
 }
 
-# ============================================
 # BOT STATES
 # ============================================
 
