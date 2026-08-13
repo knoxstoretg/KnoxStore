@@ -60,7 +60,7 @@ PRODUCTS = {
     "amul_100": {
         "name": "🧀 Amul ₹100 Coupon",
         "price": 20,
-        "min_qty": 2
+        "min_qty": 3
     },
 
     "amul_100_bulk": {
@@ -71,13 +71,13 @@ PRODUCTS = {
 
     "flipkart_249": {
         "name": "🛒 Flipkart ₹249 Gift Voucher",
-        "price": 79,
+        "price": 99,
         "min_qty": 1
     },
 
     "flipkart_499": {
         "name": "🛒 Flipkart ₹499 Gift Voucher",
-        "price": 149,
+        "price": 199,
         "min_qty": 1
     },
 
@@ -89,37 +89,37 @@ PRODUCTS = {
 
     "bookmyshow_499": {
         "name": "🎬 BookMyShow ₹499 Gift Card",
-        "price": 149,
+        "price": 199,
         "min_qty": 1
     },
 
     "pvr_200": {
         "name": "🎞 PVR ₹200 Movie Voucher",
         "price": 50,
-        "min_qty": 1
+        "min_qty": 2
     },
 
     "blinkit_499": {
         "name": "🛍️ Blinkit ₹499 Coupon",
-        "price": 149,
+        "price": 199,
         "min_qty": 1
     },
 
     "bigbasket_249": {
         "name": "🛒 BigBasket ₹249 Gift Voucher",
-        "price": 79,
+        "price": 99,
         "min_qty": 1
     },
 
     "swiggy_249": {
         "name": "🍔 Swiggy ₹249 Coupon",
-        "price": 79,
+        "price": 99,
         "min_qty": 1
     },
 
     "zomato_249": {
         "name": "🍔 Zomato ₹249 Gift Voucher",
-        "price": 79,
+        "price": 99,
         "min_qty": 1
     },
 
